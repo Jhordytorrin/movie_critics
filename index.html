@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Horror Movie Debate</title>
+<link href="https://fonts.googleapis.com/css2?family=Creepster&family=Oswald:wght@300;400;600&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blood:       #7a0000;
+  --blood-hi:    #cc1111;
+  --bone:        #e4ddd0;
+  --ash:         #111;
+  --friday-col:  #d4a017;   /* golden rust — Camp Crystal Lake */
+  --scream-col:  #9b5de5;   /* purple — Ghostface */
+  --fog:         rgba(255,255,255,0.06);
+}
+
+html, body {
+  width: 100%; height: 100%;
+  background: #000;
+  overflow: hidden;
+  font-family: 'Oswald', sans-serif;
+  color: var(--bone);
+}
+
+/* ── CURSOR ── */
+#cur {
+  position: fixed; width: 18px; height: 18px;
+  background: var(--blood-hi); border-radius: 50%;
+  pointer-events: none; transform: translate(-50%,-50%);
+  z-index: 9999; mix-blend-mode: difference;
+  transition: transform .1s;
+}
+
+/* ── GRAIN + SCANLINE ── */
+.grain {
+  position: fixed; inset: 0; pointer-events: none; z-index: 5;
+  opacity: .04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px;
+}
+@keyframes scan { from{top:-4px} to{top:100vh} }
+.scanline {
+  position: fixed; left: 0; right: 0; height: 3px;
+  background: rgba(180,0,0,.12); pointer-events: none; z-index: 6;
+  animation: scan 5s linear infinite;
+}
+
+/* ── SLIDES ── */
+.deck { width: 100%; height: 100%; position: relative; }
+
+.slide {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: clamp(24px, 4vw, 60px);
+  opacity: 0; pointer-events: none;
+  transition: opacity .55s ease;
+  overflow: hidden;
+}
+.slide.active { opacity: 1; pointer-events: all; }
+
+/* backgrounds */
+.bg-intro   { background: radial-gradient(ellipse at center, #1a0000 0%, #000 75%); }
+.bg-friday  { background: linear-gradient(140deg, #0f0c00 0%, #1e1500 50%, #000 100%); }
+.bg-scream  { background: linear-gradient(140deg, #0a0015 0%, #1a0030 50%, #000 100%); }
+.bg-compare { background: linear-gradient(180deg, #000 0%, #0a000a 60%, #000 100%); }
+.bg-end     { background: radial-gradient(ellipse at center, #100000 0%, #000 70%); }
+
+/* glows */
+.bg-friday::after {
+  content:''; position:absolute; inset:0;
+  background: radial-gradient(ellipse at 75% 50%, rgba(212,160,23,.15) 0%, transparent 60%);
+  pointer-events: none;
+}
+.bg-scream::after {
+  content:''; position:absolute; inset:0;
+  background: radial-gradient(ellipse at 25% 50%, rgba(120,50,220,.18) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* ── DRIP SVG (top) ── */
+.drip {
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 70px; overflow: hidden; pointer-events: none;
+}
+.drip svg { width: 100%; }
+
+/* ── TYPOGRAPHY ── */
+.eyebrow {
+  font-family: 'Special Elite', cursive;
+  font-size: .72rem; letter-spacing: 4px; text-transform: uppercase;
+  color: var(--blood-hi); opacity: .85; margin-bottom: 10px;
+}
+
+h1.hero {
+  font-family: 'Creepster', cursive;
+  font-size: clamp(3rem, 9vw, 7.5rem);
+  color: var(--bone);
+  text-align: center; line-height: .95;
+  text-shadow: 0 0 50px rgba(180,0,0,.9), 0 0 100px rgba(120,0,0,.4);
+}
+
+h2.movie-h {
+  font-family: 'Creepster', cursive;
+  font-size: clamp(2rem, 5.5vw, 4.8rem);
+  text-align: center; line-height: 1.05; letter-spacing: 2px;
+}
+.col-friday  { color: var(--friday-col); text-shadow: 0 0 30px rgba(212,160,23,.7); }
+.col-scream  { color: var(--scream-col); text-shadow: 0 0 30px rgba(155,93,229,.7); }
+.col-white   { color: var(--bone); }
+
+.hr-line {
+  width: 56px; height: 2px; margin: 12px auto;
+  background: var(--blood-hi);
+}
+.hr-line.gold   { background: var(--friday-col); }
+.hr-line.purple { background: var(--scream-col); }
+
+/* ── CARDS GRID ── */
+.grid3 {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  gap: 14px; width: 100%; max-width: 860px; margin-top: 18px;
+}
+.grid3.g2 { grid-template-columns: repeat(2,1fr); max-width: 580px; }
+
+.card {
+  background: var(--fog);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 4px; padding: 18px 14px; text-align: center;
+  position: relative; overflow: hidden;
+}
+.card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background: var(--blood-hi);
+}
+.card.gold::before   { background: var(--friday-col); }
+.card.purple::before { background: var(--scream-col); }
+
+.card-icon  { font-size: 1.7rem; margin-bottom: 6px; }
+.card-lbl   { font-family:'Special Elite',cursive; font-size:.62rem; letter-spacing:3px; text-transform:uppercase; opacity:.45; margin-bottom:5px; }
+.card-val   { font-size: clamp(.78rem,1.4vw,.95rem); color:rgba(228,221,208,.85); line-height:1.5; }
+
+/* ── SPLIT ── */
+.split {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 20px; width: 100%; max-width: 920px; margin-top: 18px;
+}
+.sblock {
+  background: var(--fog);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 5px; padding: 22px 20px;
+}
+.sblock h3 { font-family:'Creepster',cursive; font-size:1.45rem; margin-bottom:12px; }
+.sblock ul { list-style:none; }
+.sblock ul li {
+  font-family:'Special Elite',cursive; font-size:.84rem;
+  color:rgba(228,221,208,.78); padding:6px 0;
+  border-bottom:1px solid rgba(255,255,255,.05);
+  display:flex; gap:9px; align-items:flex-start; line-height:1.5;
+}
+.sblock ul li:last-child { border-bottom:none; }
+.bul { opacity:.45; flex-shrink:0; }
+
+/* ── QUOTE BAR ── */
+.qbar {
+  border-left: 3px solid var(--blood-hi);
+  padding: 12px 16px; margin-top: 14px;
+  background: rgba(255,255,255,.03); border-radius: 0 4px 4px 0;
+  font-family:'Special Elite',cursive; font-size:.85rem;
+  color:rgba(228,221,208,.8); line-height:1.7;
+}
+.qbar.gold   { border-color: var(--friday-col); }
+.qbar.purple { border-color: var(--scream-col); }
+
+/* ── HOST AVATARS ── */
+.hosts { display:flex; gap:22px; margin-top:28px; flex-wrap:wrap; justify-content:center; }
+.hcard { display:flex; flex-direction:column; align-items:center; gap:8px; }
+.avatar {
+  width:76px; height:76px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.9rem; border:2px solid rgba(255,255,255,.2);
+}
+.av-a { background:radial-gradient(circle,#3d001a,#1a000d); border-color:var(--blood-hi); }
+.av-f { background:radial-gradient(circle,#2a1a00,#110d00); border-color:var(--friday-col); }
+.av-j { background:radial-gradient(circle,#1e0033,#0a0015); border-color:var(--scream-col); }
+.hname { font-family:'Creepster',cursive; font-size:1.05rem; }
+.hrole { font-family:'Special Elite',cursive; font-size:.6rem; letter-spacing:2px; text-transform:uppercase; opacity:.45; text-align:center; }
+
+/* ── VS BADGE ── */
+.vs-wrap {
+  display:grid; grid-template-columns:1fr auto 1fr;
+  align-items:center; gap:16px;
+  width:100%; max-width:860px; margin-top:18px;
+}
+.vs-txt { font-family:'Creepster',cursive; font-size:2.4rem; color:var(--blood-hi); text-shadow:0 0 18px rgba(200,0,0,.6); }
+.vcard { background:var(--fog); border-radius:5px; padding:20px 16px; text-align:center; }
+.vcard h3 { font-family:'Creepster',cursive; font-size:1.25rem; margin-bottom:10px; }
+.vline { font-family:'Special Elite',cursive; font-size:.78rem; color:rgba(228,221,208,.65); line-height:1.7; }
+
+/* ── ANIMATIONS ── */
+@keyframes flicker {
+  0%,100%{opacity:1} 91%{opacity:1} 92%{opacity:.3} 94%{opacity:1} 97%{opacity:.7} 98%{opacity:1}
+}
+.flicker { animation: flicker 6s infinite; }
+
+@keyframes glow-pulse {
+  0%,100%{ text-shadow:0 0 50px rgba(180,0,0,.9),0 0 100px rgba(120,0,0,.4); }
+  50%    { text-shadow:0 0 80px rgba(220,0,0,1),0 0 140px rgba(160,0,0,.6); }
+}
+.glow-p { animation: glow-pulse 3.5s ease-in-out infinite; }
+
+@keyframes rise {
+  from{opacity:0;transform:translateY(28px)}
+  to  {opacity:1;transform:translateY(0)}
+}
+.slide.active .ri { animation: rise .65s ease forwards; opacity:0; }
+.slide.active .ri:nth-child(2){animation-delay:.12s}
+.slide.active .ri:nth-child(3){animation-delay:.24s}
+.slide.active .ri:nth-child(4){animation-delay:.36s}
+.slide.active .ri:nth-child(5){animation-delay:.48s}
+
+/* ── NAV BAR ── */
+.nav {
+  position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
+  display:flex; align-items:center; gap:16px; z-index:100;
+  background:rgba(0,0,0,.72); padding:9px 22px; border-radius:50px;
+  border:1px solid rgba(255,255,255,.1); backdrop-filter:blur(12px);
+}
+.nbtn {
+  background:none; border:1px solid rgba(255,255,255,.2); color:var(--bone);
+  padding:7px 20px; border-radius:30px; font-family:'Oswald',sans-serif;
+  font-size:.75rem; letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+  transition:all .2s;
+}
+.nbtn:hover { background:var(--blood); border-color:var(--blood); box-shadow:0 0 14px rgba(139,0,0,.5); }
+.counter { font-family:'Special Elite',cursive; font-size:.72rem; color:rgba(255,255,255,.4); min-width:44px; text-align:center; }
+.dots { display:flex; gap:7px; }
+.dot { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.2); cursor:pointer; transition:all .3s; }
+.dot.active { background:var(--blood-hi); transform:scale(1.5); }
+
+/* ── MUSIC BUTTON ── */
+#musicBtn {
+  position:fixed; top:18px; right:20px; z-index:200;
+  background:rgba(0,0,0,.7); border:1px solid rgba(255,255,255,.15);
+  color:var(--bone); padding:8px 16px; border-radius:30px;
+  font-family:'Special Elite',cursive; font-size:.7rem;
+  letter-spacing:2px; text-transform:uppercase; cursor:pointer;
+  backdrop-filter:blur(10px); transition:all .25s;
+  display:flex; align-items:center; gap:8px;
+}
+#musicBtn:hover { background:rgba(100,0,0,.6); border-color:var(--blood-hi); }
+.music-icon { font-size:1rem; }
+.music-wave {
+  display:flex; gap:2px; align-items:center; height:14px;
+}
+.wave-bar {
+  width:3px; background:var(--blood-hi); border-radius:2px;
+  animation: wave-anim .8s ease-in-out infinite;
+}
+.wave-bar:nth-child(1){height:4px;animation-delay:0s}
+.wave-bar:nth-child(2){height:10px;animation-delay:.15s}
+.wave-bar:nth-child(3){height:6px;animation-delay:.3s}
+.wave-bar:nth-child(4){height:12px;animation-delay:.1s}
+.wave-bar:nth-child(5){height:5px;animation-delay:.25s}
+@keyframes wave-anim {
+  0%,100%{transform:scaleY(.4)}
+  50%{transform:scaleY(1)}
+}
+.music-wave.paused .wave-bar { animation-play-state:paused; }
+
+/* ── POSTER MOCKS ── */
+.poster {
+  width:150px; flex-shrink:0; border-radius:4px; overflow:hidden;
+  border:1px solid rgba(255,255,255,.1);
+}
+.p-friday {
+  height:200px; padding:14px;
+  background:linear-gradient(170deg,#1a1200,#0a0800,#000);
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  position:relative;
+}
+.p-friday::before {
+  content:'🌲🔪\A💀🌲🌊'; white-space:pre;
+  position:absolute;top:18px;left:50%;transform:translateX(-50%);
+  font-size:1.8rem;opacity:.45;text-align:center;line-height:1.5;
+}
+.p-scream {
+  height:200px; padding:14px;
+  background:linear-gradient(170deg,#100020,#08000f,#000);
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  position:relative;
+}
+.p-scream::before {
+  content:'😱\A🗽🔪'; white-space:pre;
+  position:absolute;top:18px;left:50%;transform:translateX(-50%);
+  font-size:2.2rem;opacity:.45;text-align:center;line-height:1.5;
+}
+.p-label { font-family:'Creepster',cursive; font-size:.8rem; text-align:center; line-height:1.3; z-index:1; }
+
+.movie-block { display:flex; align-items:flex-start; gap:24px; width:100%; max-width:880px; margin-top:16px; }
+.movie-details { flex:1; }
+.chip-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+.chip {
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
+  border-radius:3px; padding:4px 11px;
+  font-family:'Special Elite',cursive; font-size:.7rem;
+  color:rgba(228,221,208,.75); letter-spacing:1px;
+}
+
+/* skull finale */
+.skull { font-size:3.5rem; margin:10px 0; filter:drop-shadow(0 0 18px rgba(139,0,0,.9)); }
+</style>
+</head>
+<body>
+
+<div id="cur"></div>
+<div class="grain"></div>
+<div class="scanline"></div>
+
+<!-- MUSIC BUTTON -->
+<button id="musicBtn" onclick="toggleMusic()">
+  <span class="music-icon">🎵</span>
+  <span id="musicLabel">Play Music</span>
+  <div class="music-wave paused" id="wave">
+    <div class="wave-bar"></div><div class="wave-bar"></div>
+    <div class="wave-bar"></div><div class="wave-bar"></div>
+    <div class="wave-bar"></div>
+  </div>
+</button>
+
+<div class="deck">
+
+  <!-- ═══════════ SLIDE 0 — INTRO ═══════════ -->
+  <div class="slide bg-intro active" data-slide="0">
+    <div class="drip">
+      <svg viewBox="0 0 1200 70" preserveAspectRatio="none">
+        <path d="M0,0 L0,28 Q80,58 160,28 Q240,0 320,38 Q400,68 480,30 Q560,0 640,42 Q720,70 800,32 Q880,0 960,40 Q1040,68 1120,28 Q1160,12 1200,30 L1200,0Z" fill="#7a0000"/>
+        <ellipse cx="320" cy="38" rx="8" ry="24" fill="#7a0000"/>
+        <ellipse cx="640" cy="42" rx="6" ry="28" fill="#7a0000"/>
+        <ellipse cx="960" cy="40" rx="9" ry="22" fill="#7a0000"/>
+      </svg>
+    </div>
+
+    <p class="eyebrow ri">English · Horror Podcast</p>
+    <h1 class="hero flicker glow-p ri">Horror Movie<br>Debate</h1>
+    <div class="hr-line ri"></div>
+    <p class="ri" style="font-family:'Special Elite',cursive;font-size:clamp(.85rem,1.8vw,1.1rem);opacity:.65;text-align:center;max-width:520px;line-height:1.7;margin-top:6px;">
+      Friday the 13th &nbsp;vs&nbsp; Scream VI<br>
+      <span style="color:var(--blood-hi);font-size:.85em;">Which one is the true horror masterpiece?</span>
+    </p>
+
+    <div class="hosts ri">
+      <div class="hcard">
+        <div class="avatar av-a">🎙️</div>
+        <div class="hname">Anjelly</div>
+        <div class="hrole">Host</div>
+      </div>
+      <div class="hcard">
+        <div class="avatar av-f">🔪</div>
+        <div class="hname">Fritz</div>
+        <div class="hrole">Friday the 13th</div>
+      </div>
+      <div class="hcard">
+        <div class="avatar av-j">😱</div>
+        <div class="hname">Jhordy</div>
+        <div class="hrole">Scream VI</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SLIDE 1 — FRIDAY THE 13TH ═══════════ -->
+  <div class="slide bg-friday" data-slide="1">
+    <p class="eyebrow ri">Fritz presents</p>
+    <h2 class="movie-h col-friday ri">Friday the 13th</h2>
+    <div class="hr-line gold ri"></div>
+
+    <div class="movie-block ri">
+      <div class="poster">
+        <div class="p-friday">
+          <div class="p-label col-friday">FRIDAY<br>THE 13th</div>
+        </div>
+      </div>
+      <div class="movie-details">
+        <div class="chip-row">
+          <div class="chip">🎬 Sean S. Cunningham</div>
+          <div class="chip">📅 1980</div>
+          <div class="chip">🌲 Slasher / Survival</div>
+        </div>
+        <div class="grid3">
+          <div class="card gold">
+            <div class="card-icon">🌲</div>
+            <div class="card-lbl">Setting</div>
+            <div class="card-val">Isolated forest camp — dark &amp; quiet</div>
+          </div>
+          <div class="card gold">
+            <div class="card-icon">🎵</div>
+            <div class="card-lbl">Atmosphere</div>
+            <div class="card-val">Suspenseful music, convincing performances</div>
+          </div>
+          <div class="card gold">
+            <div class="card-icon">🏛️</div>
+            <div class="card-lbl">Legacy</div>
+            <div class="card-val">Masterpiece that changed the horror genre forever</div>
+          </div>
+        </div>
+        <div class="qbar gold">
+          "The final scene at the lake shocked audiences around the world — more iconic than many modern horror endings."
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SLIDE 2 — SCREAM VI ═══════════ -->
+  <div class="slide bg-scream" data-slide="2">
+    <p class="eyebrow ri">Jhordy presents</p>
+    <h2 class="movie-h col-scream ri">Scream VI</h2>
+    <div class="hr-line purple ri"></div>
+
+    <div class="movie-block ri">
+      <div class="poster">
+        <div class="p-scream">
+          <div class="p-label col-scream">SCREAM VI<br>NEW YORK</div>
+        </div>
+      </div>
+      <div class="movie-details">
+        <div class="chip-row">
+          <div class="chip">🎬 Bettinelli-Olpin &amp; Gillett</div>
+          <div class="chip">📅 2023</div>
+          <div class="chip">🗽 Slasher / Mystery</div>
+        </div>
+        <div class="grid3">
+          <div class="card purple">
+            <div class="card-icon">🏙️</div>
+            <div class="card-lbl">Setting</div>
+            <div class="card-val">New York City — danger everywhere</div>
+          </div>
+          <div class="card purple">
+            <div class="card-icon">⚡</div>
+            <div class="card-lbl">Pace</div>
+            <div class="card-val">Fast, exciting — unforgettable subway scene</div>
+          </div>
+          <div class="card purple">
+            <div class="card-icon">🎭</div>
+            <div class="card-lbl">Acting</div>
+            <div class="card-val">Stronger performances, better special effects</div>
+          </div>
+        </div>
+        <div class="qbar purple">
+          "Even people who don't usually like horror movies can enjoy Scream VI — it's entertaining and highly recommended."
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SLIDE 3 — COMPARISON ═══════════ -->
+  <div class="slide bg-compare" data-slide="3">
+    <p class="eyebrow ri">The Showdown</p>
+    <h2 class="movie-h col-white ri" style="font-size:clamp(1.8rem,4vw,3rem);">Head to Head</h2>
+    <div class="hr-line ri"></div>
+
+    <div class="split ri">
+      <div class="sblock" style="border-color:rgba(212,160,23,.25);">
+        <h3 class="col-friday">🔪 Friday the 13th</h3>
+        <ul>
+          <li><span class="bul">▸</span>Darker, more isolated atmosphere</li>
+          <li><span class="bul">▸</span>Older but scarier and more mysterious</li>
+          <li><span class="bul">▸</span>Iconic lake finale — world-famous shock</li>
+          <li><span class="bul">▸</span>Suspenseful background music</li>
+          <li><span class="bul">▸</span>Changed the horror genre forever</li>
+        </ul>
+      </div>
+      <div class="sblock" style="border-color:rgba(155,93,229,.25);">
+        <h3 class="col-scream">😱 Scream VI</h3>
+        <ul>
+          <li><span class="bul">▸</span>Modern, bigger city setting</li>
+          <li><span class="bul">▸</span>Faster pace &amp; more action scenes</li>
+          <li><span class="bul">▸</span>Better special effects &amp; acting</li>
+          <li><span class="bul">▸</span>Subway scene — incredible tension</li>
+          <li><span class="bul">▸</span>Appeals to non-horror fans too</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="vs-wrap ri">
+      <div class="vcard" style="border:1px solid rgba(212,160,23,.2);">
+        <h3 class="col-friday">🌲 Best for...</h3>
+        <div class="vline">Classic horror lovers<br>who want atmosphere &amp; dread</div>
+      </div>
+      <div class="vs-txt">VS</div>
+      <div class="vcard" style="border:1px solid rgba(155,93,229,.2);">
+        <h3 class="col-scream">🗽 Best for...</h3>
+        <div class="vline">Mystery &amp; action fans<br>who want modern thrills</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SLIDE 4 — KEY MOMENTS ═══════════ -->
+  <div class="slide bg-compare" data-slide="4">
+    <p class="eyebrow ri">Memorable Moments</p>
+    <h2 class="movie-h col-white ri" style="font-size:clamp(1.6rem,3.5vw,2.8rem);">Scenes You'll Never Forget</h2>
+    <div class="hr-line ri"></div>
+
+    <div class="grid3 g2 ri" style="max-width:680px;margin-top:22px;">
+      <div class="card gold" style="padding:24px 18px;">
+        <div class="card-icon">🌊</div>
+        <div class="card-lbl">Friday the 13th</div>
+        <div class="card-val" style="font-size:.9rem;line-height:1.6;">The final lake scene — a shock that made audiences scream worldwide.</div>
+      </div>
+      <div class="card purple" style="padding:24px 18px;">
+        <div class="card-icon">🚇</div>
+        <div class="card-lbl">Scream VI</div>
+        <div class="card-val" style="font-size:.9rem;line-height:1.6;">The subway chase — nobody knows who the killer is. Pure tension.</div>
+      </div>
+    </div>
+
+    <div class="split ri" style="max-width:680px;margin-top:16px;gap:14px;">
+      <div class="qbar gold" style="margin:0;">
+        "It is more iconic than many modern horror endings." — Fritz
+      </div>
+      <div class="qbar purple" style="margin:0;">
+        "The tension was incredible!" — Jhordy
+      </div>
+    </div>
+
+    <div class="ri" style="margin-top:22px;text-align:center;">
+      <div class="card" style="display:inline-block;padding:14px 24px;max-width:500px;">
+        <div class="card-lbl" style="margin-bottom:6px;">Both agree on one thing</div>
+        <div class="card-val" style="font-size:.9rem;">Neither has a happy ending — and <span style="color:var(--blood-hi);">that's exactly why horror fans love them!</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ SLIDE 5 — FINALE ═══════════ -->
+  <div class="slide bg-end" data-slide="5">
+    <div class="drip">
+      <svg viewBox="0 0 1200 70" preserveAspectRatio="none">
+        <path d="M0,0 L0,28 Q80,58 160,28 Q240,0 320,38 Q400,68 480,30 Q560,0 640,42 Q720,70 800,32 Q880,0 960,40 Q1040,68 1120,28 Q1160,12 1200,30 L1200,0Z" fill="#7a0000"/>
+        <ellipse cx="480" cy="30" rx="7" ry="26" fill="#7a0000"/>
+        <ellipse cx="800" cy="32" rx="9" ry="22" fill="#7a0000"/>
+      </svg>
+    </div>
+
+    <div class="skull ri">🎬💀🎬</div>
+    <p class="eyebrow ri">Final Verdict</p>
+    <h2 class="movie-h col-white ri" style="font-size:clamp(1.8rem,4vw,3.2rem);">The Conclusion</h2>
+    <div class="hr-line ri"></div>
+
+    <div class="split ri" style="max-width:740px;margin-top:18px;">
+      <div class="card gold" style="padding:22px 18px;text-align:left;">
+        <div class="card-lbl" style="margin-bottom:8px;">Friday the 13th</div>
+        <div class="card-val" style="font-size:.88rem;line-height:1.7;">
+          Scarier · More mysterious · Darker atmosphere<br>
+          <span style="color:var(--friday-col);">→ A true classic every horror fan must watch</span>
+        </div>
+      </div>
+      <div class="card purple" style="padding:22px 18px;text-align:left;">
+        <div class="card-lbl" style="margin-bottom:8px;">Scream VI</div>
+        <div class="card-val" style="font-size:.88rem;line-height:1.7;">
+          Faster · More modern · Broader appeal<br>
+          <span style="color:var(--scream-col);">→ The most exciting modern horror experience</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="ri" style="font-family:'Special Elite',cursive;font-size:clamp(.82rem,1.6vw,1rem);opacity:.65;text-align:center;max-width:500px;margin-top:20px;line-height:1.8;">
+      Their endings are darker than most action movies —<br>
+      <span style="color:var(--blood-hi);">and that is exactly why horror fans love them!</span>
+    </p>
+
+    <div class="hosts ri" style="margin-top:20px;gap:16px;">
+      <div class="hcard">
+        <div class="avatar av-a" style="width:60px;height:60px;font-size:1.5rem;">🎙️</div>
+        <div class="hname" style="font-size:.9rem;">Anjelly</div>
+      </div>
+      <div class="hcard">
+        <div class="avatar av-f" style="width:60px;height:60px;font-size:1.5rem;">🔪</div>
+        <div class="hname" style="font-size:.9rem;">Fritz</div>
+      </div>
+      <div class="hcard">
+        <div class="avatar av-j" style="width:60px;height:60px;font-size:1.5rem;">😱</div>
+        <div class="hname" style="font-size:.9rem;">Jhordy</div>
+      </div>
+    </div>
+
+    <p class="ri" style="font-family:'Creepster',cursive;font-size:1.1rem;color:var(--blood-hi);margin-top:16px;letter-spacing:2px;">
+      Thanks for listening — see you next time! 💀
+    </p>
+  </div>
+
+</div><!-- /deck -->
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nbtn" onclick="go(-1)">◀ Prev</button>
+  <div class="dots" id="dots"></div>
+  <span class="counter" id="ctr">1 / 6</span>
+  <button class="nbtn" onclick="go(1)">Next ▶</button>
+</nav>
+
+<script>
+/* ─── CURSOR ─── */
+const cur = document.getElementById('cur');
+document.addEventListener('mousemove', e => {
+  cur.style.left = e.clientX + 'px';
+  cur.style.top  = e.clientY + 'px';
+});
+
+/* ─── SLIDES ─── */
+const slides = [...document.querySelectorAll('.slide')];
+const total  = slides.length;
+let idx = 0;
+
+const dotsEl = document.getElementById('dots');
+for (let i = 0; i < total; i++) {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' active' : '');
+  d.onclick = () => goTo(i);
+  dotsEl.appendChild(d);
+}
+
+function goTo(n) {
+  slides[idx].classList.remove('active');
+  dotsEl.children[idx].classList.remove('active');
+  idx = (n + total) % total;
+  slides[idx].classList.add('active');
+  dotsEl.children[idx].classList.add('active');
+  document.getElementById('ctr').textContent = (idx + 1) + ' / ' + total;
+}
+function go(d) { goTo(idx + d); }
+
+document.addEventListener('keydown', e => {
+  if (e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' ') go(1);
+  if (e.key==='ArrowLeft' ||e.key==='ArrowUp')                go(-1);
+});
+let tx = 0;
+document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; });
+document.addEventListener('touchend',   e => {
+  const d = tx - e.changedTouches[0].clientX;
+  if (Math.abs(d) > 50) go(d > 0 ? 1 : -1);
+});
+
+/* ─── AUDIO ENGINE — TENSE THRILLER + HORROR FX ─── */
+let actx = null, playing = false;
+let allNodes = [];   // store stoppable nodes
+let beatTimer = null, melodyTimer = null, screamTimer = null;
+
+function buildAudio() {
+  actx = new (window.AudioContext || window.webkitAudioContext)();
+
+  /* ── MASTER CHAIN ── */
+  const master = actx.createGain();
+  master.gain.value = 0.0;   // fade in
+  master.connect(actx.destination);
+  master.gain.linearRampToValueAtTime(0.7, actx.currentTime + 2);
+
+  const compressor = actx.createDynamicsCompressor();
+  compressor.threshold.value = -18;
+  compressor.knee.value = 10;
+  compressor.ratio.value = 4;
+  compressor.attack.value = 0.003;
+  compressor.release.value = 0.25;
+  compressor.connect(master);
+
+  /* ── REVERB ── */
+  function makeReverb(secs, decay) {
+    const len = actx.sampleRate * secs;
+    const buf = actx.createBuffer(2, len, actx.sampleRate);
+    for (let c = 0; c < 2; c++) {
+      const d = buf.getChannelData(c);
+      for (let i = 0; i < len; i++)
+        d[i] = (Math.random()*2-1) * Math.pow(1 - i/len, decay);
+    }
+    const conv = actx.createConvolver();
+    conv.buffer = buf;
+    return conv;
+  }
+  const longRev  = makeReverb(6, 1.2);   longRev.connect(compressor);
+  const shortRev = makeReverb(1.5, 2.5); shortRev.connect(compressor);
+
+  /* ── HELPER: noise buffer ── */
+  function noiseBuffer(secs) {
+    const buf = actx.createBuffer(1, actx.sampleRate * secs, actx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random()*2-1;
+    return buf;
+  }
+
+  /* ══════════════════════════════════
+     1. DEEP PULSING BASS DRUM
+     ═══════════════════════════════ */
+  const BPM = 72;
+  const beat = 60 / BPM;       // ~0.833s per beat
+
+  function kickDrum(when) {
+    const o = actx.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(160, when);
+    o.frequency.exponentialRampToValueAtTime(40, when + 0.18);
+    const g = actx.createGain();
+    g.gain.setValueAtTime(1.1, when);
+    g.gain.exponentialRampToValueAtTime(0.001, when + 0.5);
+    o.connect(g); g.connect(compressor);
+    o.start(when); o.stop(when + 0.55);
+  }
+
+  function snareCrack(when) {
+    // noise burst
+    const ns = actx.createBufferSource();
+    ns.buffer = noiseBuffer(0.2);
+    const nf = actx.createBiquadFilter();
+    nf.type = 'bandpass'; nf.frequency.value = 2200; nf.Q.value = 0.8;
+    const ng = actx.createGain();
+    ng.gain.setValueAtTime(0.55, when);
+    ng.gain.exponentialRampToValueAtTime(0.001, when + 0.18);
+    ns.connect(nf); nf.connect(ng); ng.connect(compressor); ng.connect(shortRev);
+    ns.start(when); ns.stop(when + 0.22);
+    // tone snap
+    const o = actx.createOscillator();
+    o.type = 'triangle'; o.frequency.value = 220;
+    const og = actx.createGain();
+    og.gain.setValueAtTime(0.35, when);
+    og.gain.exponentialRampToValueAtTime(0.001, when + 0.12);
+    o.connect(og); og.connect(compressor);
+    o.start(when); o.stop(when + 0.15);
+  }
+
+  function hihat(when, open) {
+    const ns = actx.createBufferSource();
+    ns.buffer = noiseBuffer(open ? 0.35 : 0.07);
+    const f = actx.createBiquadFilter();
+    f.type = 'highpass'; f.frequency.value = 7000;
+    const g = actx.createGain();
+    g.gain.setValueAtTime(open ? 0.12 : 0.08, when);
+    g.gain.exponentialRampToValueAtTime(0.001, when + (open ? 0.3 : 0.06));
+    ns.connect(f); f.connect(g); g.connect(compressor);
+    ns.start(when); ns.stop(when + (open ? 0.38 : 0.1));
+  }
+
+  // schedule looping beat pattern
+  let beatStart = actx.currentTime + 0.5;
+  function scheduleBeat() {
+    const t = beatStart;
+    // Bar pattern (4 beats):  K . S . K K S .  (K=kick, S=snare)
+    kickDrum(t);
+    hihat(t, false);
+    snareCrack(t + beat);
+    hihat(t + beat, false);
+    kickDrum(t + beat*1.5);
+    hihat(t + beat*1.5, false);
+    kickDrum(t + beat*2);
+    hihat(t + beat*2, false);
+    snareCrack(t + beat*2.5);
+    hihat(t + beat*2.5, true);   // open hihat = tension
+    hihat(t + beat*3, false);
+    hihat(t + beat*3.5, false);
+    beatStart += beat * 4;
+    beatTimer = setTimeout(scheduleBeat, (beat * 4 - 0.1) * 1000);
+  }
+  scheduleBeat();
+
+  /* ══════════════════════════════════
+     2. THRILLER BASS LINE (sawtooth, filtered)
+     ═══════════════════════════════ */
+  // Minor bass riff: Am pentatonic feel
+  const bassNotes = [55, 55, 65.4, 58.3, 55, 49, 55, 0]; // A1, A1, C2, Bb1, A1, G1, A1, rest
+  let bassIdx = 0;
+  function bassNote(when, freq, dur) {
+    if (freq === 0) return;
+    const o = actx.createOscillator();
+    o.type = 'sawtooth'; o.frequency.value = freq;
+    const f = actx.createBiquadFilter();
+    f.type = 'lowpass'; f.frequency.value = 300;
+    f.frequency.linearRampToValueAtTime(800, when + dur * 0.3);
+    f.frequency.linearRampToValueAtTime(200, when + dur);
+    const g = actx.createGain();
+    g.gain.setValueAtTime(0.38, when);
+    g.gain.linearRampToValueAtTime(0.28, when + dur - 0.05);
+    g.gain.linearRampToValueAtTime(0, when + dur);
+    o.connect(f); f.connect(g); g.connect(compressor);
+    o.start(when); o.stop(when + dur + 0.05);
+  }
+  let bassStart = actx.currentTime + 0.5;
+  function scheduleBass() {
+    for (let i = 0; i < 8; i++) {
+      bassNote(bassStart + i * beat * 0.5, bassNotes[(bassIdx + i) % bassNotes.length], beat * 0.45);
+    }
+    bassIdx = (bassIdx + 8) % bassNotes.length;
+    bassStart += beat * 4;
+    melodyTimer = setTimeout(scheduleBass, (beat * 4 - 0.1) * 1000);
+  }
+  scheduleBass();
+
+  /* ══════════════════════════════════
+     3. EERIE MELODY — violin-like (Am scale)
+     ═══════════════════════════════ */
+  // Notes for spooky melody in Am
+  const melNotes = [220, 246.9, 261.6, 220, 196, 174.6, 196, 220,
+                    233.1, 220, 196, 174.6, 196, 0, 220, 0];
+  let melIdx = 0;
+
+  function melodyNote(when, freq, dur) {
+    if (freq === 0) return;
+    // layered: triangle + square for violin-ish timbre
+    [['triangle', 0.12], ['square', 0.04]].forEach(([type, vol]) => {
+      const o = actx.createOscillator();
+      o.type = type; o.frequency.value = freq;
+      // slight vibrato
+      const vib = actx.createOscillator();
+      vib.frequency.value = 5.5;
+      const vibG = actx.createGain(); vibG.gain.value = 3;
+      vib.connect(vibG); vibG.connect(o.frequency);
+      vib.start(when + 0.12); vib.stop(when + dur);
+      const g = actx.createGain();
+      g.gain.setValueAtTime(0, when);
+      g.gain.linearRampToValueAtTime(vol, when + 0.06);
+      g.gain.setValueAtTime(vol, when + dur - 0.08);
+      g.gain.linearRampToValueAtTime(0, when + dur);
+      o.connect(g); g.connect(longRev); g.connect(compressor);
+      o.start(when); o.stop(when + dur + 0.05);
+    });
+  }
+
+  let melStart = actx.currentTime + 1.0;   // melody enters slightly after beat
+  function scheduleMelody() {
+    const noteDur = beat * 0.9;
+    for (let i = 0; i < 16; i++) {
+      melodyNote(melStart + i * beat * 0.5, melNotes[(melIdx + i) % melNotes.length], noteDur * 0.5);
+    }
+    melIdx = (melIdx + 16) % melNotes.length;
+    melStart += beat * 8;
+    setTimeout(scheduleMelody, (beat * 8 - 0.1) * 1000);
+  }
+  scheduleMelody();
+
+  /* ══════════════════════════════════
+     4. DEEP DRONE PADS (tension chords)
+     ═══════════════════════════════ */
+  // Am chord: 55, 65.4, 82.4 (A1, C2, E2)
+  [55, 65.4, 82.4].forEach(freq => {
+    const o = actx.createOscillator();
+    o.type = 'sawtooth'; o.frequency.value = freq;
+    const f = actx.createBiquadFilter();
+    f.type = 'lowpass'; f.frequency.value = 180;
+    const g = actx.createGain(); g.gain.value = 0.0;
+    g.gain.linearRampToValueAtTime(0.09, actx.currentTime + 3);
+    // slow tremolo
+    const lfo = actx.createOscillator();
+    lfo.frequency.value = 0.3 + Math.random()*0.2;
+    const lfoG = actx.createGain(); lfoG.gain.value = 0.03;
+    lfo.connect(lfoG); lfoG.connect(g.gain);
+    o.connect(f); f.connect(g);
+    g.connect(longRev); g.connect(compressor);
+    o.start(); lfo.start();
+    allNodes.push(o, lfo);
+  });
+
+  /* ══════════════════════════════════
+     5. HORROR FX — SCREAMS & STINGS
+     ═══════════════════════════════ */
+
+  // Synthesized scream: fast upward glide of filtered noise
+  function syntheticScream(when) {
+    // Noise layer (breath)
+    const ns = actx.createBufferSource();
+    ns.buffer = noiseBuffer(1.5);
+    const nf = actx.createBiquadFilter();
+    nf.type = 'bandpass';
+    nf.frequency.setValueAtTime(800, when);
+    nf.frequency.exponentialRampToValueAtTime(3200, when + 0.4);
+    nf.frequency.exponentialRampToValueAtTime(1200, when + 1.2);
+    nf.Q.value = 8;
+    const ng = actx.createGain();
+    ng.gain.setValueAtTime(0, when);
+    ng.gain.linearRampToValueAtTime(0.45, when + 0.05);
+    ng.gain.setValueAtTime(0.45, when + 0.6);
+    ng.gain.exponentialRampToValueAtTime(0.001, when + 1.4);
+    ns.connect(nf); nf.connect(ng);
+    ng.connect(longRev); ng.connect(compressor);
+    ns.start(when); ns.stop(when + 1.6);
+
+    // Pitched tone underneath (vocal formant)
+    const o = actx.createOscillator();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(320, when);
+    o.frequency.exponentialRampToValueAtTime(1100, when + 0.35);
+    o.frequency.exponentialRampToValueAtTime(680, when + 1.1);
+    const f2 = actx.createBiquadFilter();
+    f2.type = 'peaking'; f2.frequency.value = 900; f2.gain.value = 12; f2.Q.value = 5;
+    const og = actx.createGain();
+    og.gain.setValueAtTime(0, when);
+    og.gain.linearRampToValueAtTime(0.18, when + 0.06);
+    og.gain.setValueAtTime(0.18, when + 0.5);
+    og.gain.exponentialRampToValueAtTime(0.001, when + 1.3);
+    o.connect(f2); f2.connect(og);
+    og.connect(longRev); og.connect(compressor);
+    o.start(when); o.stop(when + 1.5);
+  }
+
+  // Horror sting: big orchestral HIT
+  function orchestralHit(when) {
+    // low boom
+    const boom = actx.createOscillator();
+    boom.type = 'sine'; boom.frequency.value = 60;
+    boom.frequency.exponentialRampToValueAtTime(28, when + 0.4);
+    const bg = actx.createGain();
+    bg.gain.setValueAtTime(1.2, when);
+    bg.gain.exponentialRampToValueAtTime(0.001, when + 1.2);
+    boom.connect(bg); bg.connect(compressor);
+    boom.start(when); boom.stop(when + 1.3);
+
+    // crash noise
+    const ns = actx.createBufferSource();
+    ns.buffer = noiseBuffer(1.0);
+    const nf = actx.createBiquadFilter();
+    nf.type = 'highpass'; nf.frequency.value = 3000;
+    const ng = actx.createGain();
+    ng.gain.setValueAtTime(0.9, when);
+    ng.gain.exponentialRampToValueAtTime(0.001, when + 0.9);
+    ns.connect(nf); nf.connect(ng);
+    ng.connect(longRev); ng.connect(compressor);
+    ns.start(when); ns.stop(when + 1.0);
+
+    // high shriek
+    const shriek = actx.createOscillator();
+    shriek.type = 'sawtooth';
+    shriek.frequency.setValueAtTime(1800, when);
+    shriek.frequency.exponentialRampToValueAtTime(600, when + 0.6);
+    const sf = actx.createBiquadFilter();
+    sf.type = 'bandpass'; sf.frequency.value = 1400; sf.Q.value = 3;
+    const sg = actx.createGain();
+    sg.gain.setValueAtTime(0.3, when);
+    sg.gain.exponentialRampToValueAtTime(0.001, when + 0.55);
+    shriek.connect(sf); sf.connect(sg);
+    sg.connect(longRev); sg.connect(compressor);
+    shriek.start(when); shriek.stop(when + 0.65);
+  }
+
+  // Child-like whisper tones (creepy)
+  function whisperTone(when) {
+    const freqs = [523.3, 493.9, 440, 415.3]; // Cm descend
+    freqs.forEach((freq, i) => {
+      const o = actx.createOscillator();
+      o.type = 'sine'; o.frequency.value = freq;
+      // flutter
+      const fl = actx.createOscillator(); fl.frequency.value = 8;
+      const flG = actx.createGain(); flG.gain.value = 6;
+      fl.connect(flG); flG.connect(o.frequency);
+      const g = actx.createGain();
+      const t = when + i * 0.35;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.1, t + 0.08);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+      o.connect(g); g.connect(longRev);
+      o.start(t); o.stop(t + 0.45);
+      fl.start(t); fl.stop(t + 0.45);
+    });
+  }
+
+  // Schedule random horror events
+  function scheduleHorrorFX() {
+    const interval = 12000 + Math.random() * 15000; // every 12-27s
+    screamTimer = setTimeout(() => {
+      if (!playing) return;
+      const roll = Math.random();
+      const now = actx.currentTime;
+      if (roll < 0.35) {
+        syntheticScream(now);           // scream
+      } else if (roll < 0.65) {
+        orchestralHit(now);             // boom + shriek
+      } else {
+        whisperTone(now);               // creepy descend
+      }
+      scheduleHorrorFX();
+    }, interval);
+  }
+  // First scare after 8 seconds
+  screamTimer = setTimeout(() => {
+    if (playing) { orchestralHit(actx.currentTime); scheduleHorrorFX(); }
+  }, 8000);
+
+  /* ══════════════════════════════════
+     6. HEARTBEAT (low thumps)
+     ═══════════════════════════════ */
+  function heartbeat(when) {
+    [0, 0.18].forEach(offset => {
+      const o = actx.createOscillator();
+      o.type = 'sine'; o.frequency.value = 72;
+      o.frequency.exponentialRampToValueAtTime(38, when + offset + 0.12);
+      const g = actx.createGain();
+      g.gain.setValueAtTime(0.55, when + offset);
+      g.gain.exponentialRampToValueAtTime(0.001, when + offset + 0.22);
+      o.connect(g); g.connect(compressor);
+      o.start(when + offset); o.stop(when + offset + 0.25);
+    });
+  }
+  // heartbeat every ~1.4s (slow, dread-building)
+  let hbTime = actx.currentTime + 2;
+  function scheduleHeartbeat() {
+    heartbeat(hbTime);
+    hbTime += 1.42;
+    setTimeout(scheduleHeartbeat, 1380);
+  }
+  scheduleHeartbeat();
+}
+
+function toggleMusic() {
+  if (!actx) {
+    buildAudio();
+    playing = true;
+  } else if (playing) {
+    actx.suspend();
+    playing = false;
+    if (beatTimer)  { clearTimeout(beatTimer);  beatTimer = null; }
+    if (melodyTimer){ clearTimeout(melodyTimer); melodyTimer = null; }
+    if (screamTimer){ clearTimeout(screamTimer); screamTimer = null; }
+  } else {
+    actx.resume();
+    playing = true;
+  }
+  document.getElementById('musicLabel').textContent = playing ? 'Stop Music' : 'Play Music';
+  document.getElementById('wave').classList.toggle('paused', !playing);
+}
+</script>
+</body>
+</html>
